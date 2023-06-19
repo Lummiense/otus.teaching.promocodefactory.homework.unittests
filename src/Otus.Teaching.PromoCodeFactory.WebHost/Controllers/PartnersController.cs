@@ -98,7 +98,7 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
                 partner.NumberIssuedPromoCodes = 0;
                 
                 //При установке лимита нужно отключить предыдущий лимит
-                activeLimit.CancelDate = DateTime.Now;
+                activeLimit.CancelDate = DateTime.Today;
             }
 
             if (request.Limit <= 0)

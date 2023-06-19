@@ -10,6 +10,8 @@ using System;
 using Otus.Teaching.PromoCodeFactory.WebHost.Models;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
+using Namotion.Reflection;
 
 namespace Otus.Teaching.PromoCodeFactory.UnitTests.WebHost.Controllers.Partners
 {
@@ -76,7 +78,7 @@ namespace Otus.Teaching.PromoCodeFactory.UnitTests.WebHost.Controllers.Partners
             var partner = CreateBasePartner().WithLimit();
             var request = new Fixture().Create<SetPartnerPromoCodeLimitRequest>();
             _partnersRepositoryMock.Setup(x => x.GetByIdAsync(partner.Id)).ReturnsAsync(partner);
-            var expectedPartner = CreateBasePartner().WithLimit();
+            var expectedPartner = CreateBasePartner().WithLimit().ResetPromoCount();
 
             //Act
             await _partnersController.SetPartnerPromoCodeLimitAsync(partner.Id, request);
@@ -86,10 +88,68 @@ namespace Otus.Teaching.PromoCodeFactory.UnitTests.WebHost.Controllers.Partners
         }
 
         //Отключение предыдущего лимита при установке нового
-        public async void SetPartnerPromoCodeLimit_AddLimit_SholdResetPreviousLimit()
+        [Fact]
+        public async void SetPartnerPromoCodeLimit_AddLimit_ShouldResetPreviousLimit()
         {
+            //Arrange
+            var partner = CreateBasePartner().WithLimit();
+            var firstElement = partner.PartnerLimits.First();
+            var request = new Fixture().Create<SetPartnerPromoCodeLimitRequest>();
+            var dateTimeToday = DateTime.Today;
+            var expectedLimit = new PartnerPromoCodeLimit()
+            {
+                Id = Guid.Parse("0e94624b-1ff9-430e-ba8d-ef1e3b77f2d8"),
+                CreateDate = new DateTime(2023, 01, 01),
+                CancelDate = dateTimeToday,
+                EndDate = new DateTime(2023, 09, 01),
+                Limit = 5
+            };
+            _partnersRepositoryMock.Setup(x => x.GetByIdAsync(partner.Id)).ReturnsAsync(partner);
+            
 
+            //Act
+            await _partnersController.SetPartnerPromoCodeLimitAsync(partner.Id, request);
+
+            //Assert
+            firstElement.Should().BeEquivalentTo(expectedLimit);
         }
 
+        //Лимит должен быть не отрицательным
+        [Fact]
+        public async void SetPartnerPromoCodeLimit_AddLimit_ShouldBeNotNegative()
+        {
+            // Arrange
+            var partnerId = Guid.NewGuid();
+            var request = new Fixture().Create<SetPartnerPromoCodeLimitRequest>();
+            request.Limit = -5;
+
+            var partner = CreateBasePartner();
+
+            _partnersRepositoryMock.Setup(x => x.GetByIdAsync(partnerId)).ReturnsAsync(partner);
+
+            // Act
+            var result = await _partnersController.SetPartnerPromoCodeLimitAsync(partnerId, request);
+
+            // Assert
+            result.Should().BeAssignableTo<BadRequestObjectResult>();
+        }
+
+        //Новый лимит должен успешно сохраниться
+        [Fact]
+        public async void SetPartnerPromoCodeLimit_AddLimit_ShouldSaveSuccesful()
+        {
+            //Arrange
+            var partner = CreateBasePartner();
+            var request = new Fixture().Create<SetPartnerPromoCodeLimitRequest>();
+            var mock = new Mock<IRepository<Partner>>();
+            mock.Setup(x => x.GetByIdAsync(partner.Id)).ReturnsAsync(partner);
+            var controller = new PartnersController(mock.Object);
+
+            //Act
+            await controller.SetPartnerPromoCodeLimitAsync(partner.Id, request);
+
+            //Assert
+            mock.Verify(x => x.UpdateAsync(partner));
+        }
     }
 }

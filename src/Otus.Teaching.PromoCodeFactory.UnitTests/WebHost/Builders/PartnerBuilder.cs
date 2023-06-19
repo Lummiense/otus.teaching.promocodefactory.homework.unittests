@@ -30,15 +30,15 @@ namespace Otus.Teaching.PromoCodeFactory.UnitTests.WebHost.Builders
 
         public static Partner WithLimit(this Partner partner)
         {
-           
+            partner.NumberIssuedPromoCodes = 3;
             partner.PartnerLimits = new List<PartnerPromoCodeLimit>();
             partner.PartnerLimits.Add(new PartnerPromoCodeLimit()
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.Parse("0e94624b-1ff9-430e-ba8d-ef1e3b77f2d8"),
                 CreateDate = new DateTime(2023, 01, 01),
-                EndDate = new DateTime(2023,09,01),
+                EndDate = new DateTime(2023, 09, 01),
                 Limit = 5
-            }) ;
+            });
             return partner;
         }
         public static Partner ResetPromoCount(this Partner partner)
@@ -46,5 +46,9 @@ namespace Otus.Teaching.PromoCodeFactory.UnitTests.WebHost.Builders
             partner.NumberIssuedPromoCodes = 0;
             return partner;
         }
+
+       
+
     }
 }
+
